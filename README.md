@@ -1,4 +1,4 @@
-<img width="1821" height="864" alt="image" src="https://github.com/user-attachments/assets/ec5a9a95-f8fb-4b1c-8b83-fa3cc2765e2c" />
+<img width="1821" height="864" alt="logo" src="https://github.com/user-attachments/assets/02fa2622-7eff-49ae-912c-8efdc95890c6" />
 
 # Paper Comprehension Quiz
 
