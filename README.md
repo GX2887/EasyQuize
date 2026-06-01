@@ -1,3 +1,5 @@
+<img width="1821" height="864" alt="image" src="https://github.com/user-attachments/assets/ec5a9a95-f8fb-4b1c-8b83-fa3cc2765e2c" />
+
 # Paper Comprehension Quiz
 
 A [Claude](https://claude.com) skill that turns a research paper into an interactive
