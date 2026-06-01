@@ -1,0 +1,16 @@
+# Generated quizzes (output of the skill, not source)
+*-quiz.html
+_test_quiz.html
+
+# Packaged skill bundle
+*.skill
+
+# Python
+__pycache__/
+*.pyc
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

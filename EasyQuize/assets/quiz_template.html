@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>__PAPER_TITLE__ — Comprehension Quiz</title>
+<style>
+  :root{
+    --bg:#0f1320; --card:#181d2e; --card2:#1f2538; --line:#2c3450;
+    --text:#e8ebf5; --muted:#9aa3bd; --accent:#5b8cff;
+    --good:#3ecf8e; --good-bg:#13352a; --bad:#ff6b6b; --bad-bg:#3a1d20;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       background:var(--bg);color:var(--text);line-height:1.55}
+  .wrap{max-width:760px;margin:0 auto;padding:32px 20px 80px}
+  header h1{font-size:22px;margin:0 0 4px}
+  header .sub{color:var(--muted);font-size:14px;margin-bottom:8px}
+  .progress-bar{height:6px;background:var(--card2);border-radius:99px;overflow:hidden;margin:18px 0 26px}
+  .progress-bar > span{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+  .q{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 20px 16px;margin-bottom:18px}
+  .q .tag{display:inline-block;font-size:11px;letter-spacing:.04em;text-transform:uppercase;
+          color:var(--accent);background:var(--card2);border:1px solid var(--line);
+          padding:3px 9px;border-radius:99px;margin-bottom:12px}
+  .q .stem{font-size:16px;font-weight:600;margin:0 0 14px}
+  .opt{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;
+       background:var(--card2);border:1px solid var(--line);color:var(--text);
+       padding:12px 14px;border-radius:10px;margin-bottom:9px;cursor:pointer;
+       font-size:14.5px;transition:border-color .15s,background .15s}
+  .opt:hover:not(.locked){border-color:var(--accent)}
+  .opt .key{flex:0 0 22px;height:22px;border:1px solid var(--line);border-radius:6px;
+            display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--muted)}
+  .opt.correct{border-color:var(--good);background:var(--good-bg)}
+  .opt.correct .key{border-color:var(--good);color:var(--good)}
+  .opt.wrong{border-color:var(--bad);background:var(--bad-bg)}
+  .opt.wrong .key{border-color:var(--bad);color:var(--bad)}
+  .opt.locked{cursor:default}
+  .explain{display:none;margin-top:6px;padding:12px 14px;border-radius:10px;
+           background:var(--card2);border-left:3px solid var(--accent);font-size:13.5px;color:var(--muted)}
+  .explain.show{display:block}
+  .explain b{color:var(--text)}
+  .result{display:none;background:var(--card);border:1px solid var(--line);border-radius:14px;
+          padding:26px;text-align:center;margin-bottom:18px}
+  .result.show{display:block}
+  .result .score{font-size:40px;font-weight:800;margin:6px 0}
+  .result .pct{color:var(--muted);font-size:14px}
+  .result .breakdown{text-align:left;margin-top:18px;border-top:1px solid var(--line);padding-top:14px}
+  .result .breakdown div{display:flex;justify-content:space-between;font-size:13.5px;
+                          color:var(--muted);padding:4px 0}
+  button.action{background:var(--accent);color:#fff;border:0;border-radius:10px;
+                padding:12px 22px;font-size:15px;font-weight:600;cursor:pointer}
+  button.action:disabled{opacity:.4;cursor:not-allowed}
+  .footer{display:flex;justify-content:center;gap:12px;margin-top:8px}
+  .ghost{background:transparent;border:1px solid var(--line);color:var(--text)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>__PAPER_TITLE__</h1>
+    <div class="sub">Comprehension check &middot; answer every question, then submit to see your score</div>
+  </header>
+  <div class="progress-bar"><span id="pbar"></span></div>
+
+  <div id="result" class="result"></div>
+  <div id="quiz"></div>
+
+  <div class="footer">
+    <button id="submit" class="action" disabled>Submit answers</button>
+    <button id="retry" class="action ghost" style="display:none">Try again</button>
+  </div>
+</div>
+
+<script>
+// ====== Claude fills this array. One object per question. ======
+// section: which part of the paper this covers (shown as a tag)
+// stem: the question text
+// options: array of answer strings
+// answer: index (0-based) of the correct option
+// explanation: why the correct answer is right (shown after submit)
+const QUESTIONS = __QUESTIONS_JSON__;
+// ===============================================================
+
+const quizEl = document.getElementById('quiz');
+const submitBtn = document.getElementById('submit');
+const retryBtn = document.getElementById('retry');
+const resultEl = document.getElementById('result');
+const pbar = document.getElementById('pbar');
+const KEYS = ['A','B','C','D','E','F'];
+let chosen = new Array(QUESTIONS.length).fill(null);
+let submitted = false;
+
+function render(){
+  quizEl.innerHTML = '';
+  QUESTIONS.forEach((q, qi) => {
+    const card = document.createElement('div');
+    card.className = 'q';
+    card.innerHTML = `<span class="tag">${q.section || 'Question ' + (qi+1)}</span>
+                      <p class="stem">${qi+1}. ${q.stem}</p>`;
+    q.options.forEach((opt, oi) => {
+      const b = document.createElement('button');
+      b.className = 'opt';
+      b.innerHTML = `<span class="key">${KEYS[oi]}</span><span>${opt}</span>`;
+      b.onclick = () => choose(qi, oi);
+      if (chosen[qi] === oi && !submitted) b.style.borderColor = 'var(--accent)';
+      card.appendChild(b);
+    });
+    const ex = document.createElement('div');
+    ex.className = 'explain';
+    ex.innerHTML = `<b>Answer: ${KEYS[q.answer]}.</b> ${q.explanation || ''}`;
+    card.appendChild(ex);
+    quizEl.appendChild(card);
+  });
+  updateProgress();
+}
+
+function choose(qi, oi){
+  if (submitted) return;
+  chosen[qi] = oi;
+  render();
+  submitBtn.disabled = chosen.includes(null);
+}
+
+function updateProgress(){
+  const done = chosen.filter(c => c !== null).length;
+  pbar.style.width = (done / QUESTIONS.length * 100) + '%';
+}
+
+submitBtn.onclick = () => {
+  submitted = true;
+  let correct = 0;
+  const cards = quizEl.querySelectorAll('.q');
+  const bySection = {};
+  QUESTIONS.forEach((q, qi) => {
+    const opts = cards[qi].querySelectorAll('.opt');
+    opts.forEach(o => o.classList.add('locked'));
+    if (chosen[qi] === q.answer) { opts[chosen[qi]].classList.add('correct'); correct++; }
+    else { opts[chosen[qi]].classList.add('wrong'); opts[q.answer].classList.add('correct'); }
+    cards[qi].querySelector('.explain').classList.add('show');
+    const sec = q.section || 'General';
+    bySection[sec] = bySection[sec] || {c:0,t:0};
+    bySection[sec].t++; if (chosen[qi] === q.answer) bySection[sec].c++;
+  });
+  const pct = Math.round(correct / QUESTIONS.length * 100);
+  let rows = Object.entries(bySection)
+    .map(([s,v]) => `<div><span>${s}</span><span>${v.c}/${v.t}</span></div>`).join('');
+  resultEl.innerHTML = `<div>You scored</div>
+    <div class="score">${correct} / ${QUESTIONS.length}</div>
+    <div class="pct">${pct}% &middot; ${pct>=80?'Strong grasp of the paper.':pct>=50?'Partial understanding — review the gaps below.':'Worth re-reading the paper before moving on.'}</div>
+    <div class="breakdown"><strong style="color:var(--text)">By section</strong>${rows}</div>`;
+  resultEl.classList.add('show');
+  submitBtn.style.display = 'none';
+  retryBtn.style.display = 'inline-block';
+  window.scrollTo({top:0, behavior:'smooth'});
+};
+
+retryBtn.onclick = () => {
+  submitted = false;
+  chosen = new Array(QUESTIONS.length).fill(null);
+  resultEl.classList.remove('show');
+  submitBtn.style.display = 'inline-block';
+  submitBtn.disabled = true;
+  retryBtn.style.display = 'none';
+  render();
+};
+
+render();
+</script>
+</body>
+</html>
