@@ -26,7 +26,7 @@ answer.
 **In Claude Cowork / Claude Desktop:** download `EasyQuiz.skill` and
 open it, or use the **Save skill** button when it's presented to you.
 
-**Manually:** copy the `paper-comprehension-quiz/` folder into your Claude skills
+**Manually:** copy the `EasyQuiz/` folder into your Claude skills
 directory so that `SKILL.md` sits at its root.
 
 ## Using it
