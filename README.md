@@ -23,7 +23,7 @@ answer.
 
 ## Installing
 
-**In Claude Cowork / Claude Desktop:** download `paper-comprehension-quiz.skill` and
+**In Claude Cowork / Claude Desktop:** download `EasyQuiz.skill` and
 open it, or use the **Save skill** button when it's presented to you.
 
 **Manually:** copy the `paper-comprehension-quiz/` folder into your Claude skills
